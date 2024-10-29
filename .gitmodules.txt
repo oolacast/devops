@@ -1,0 +1,4 @@
+
+[submodule "pkg/lib/harness/llama.cpp"]
+	path = pkg/lib/harness/llama.cpp
+	url = https://github.com/ggerganov/llama.cpp.git
