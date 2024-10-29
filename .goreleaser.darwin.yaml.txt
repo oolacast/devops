@@ -1,0 +1,67 @@
+
+version: 2
+
+project_name: kitops
+
+before:
+  hooks:
+    - go mod tidy
+    - ./build/scripts/generate-arch
+
+builds:
+  - id: "kit-macos"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    binary: kit
+    ldflags:
+      - -s -w -X kitops/pkg/lib/constants.Version={{.Version}} -X kitops/pkg/lib/constants.GitCommit={{.Commit}} -X kitops/pkg/lib/constants.BuildTime={{.CommitDate}}
+    hooks:
+      post:
+        - cmd: ./build/scripts/sign '{{ .Path }}'
+          output: true
+
+archives:
+  # zip archives for Mac OS:
+  #   - will be notorized 
+  #   - will be made available for users to install manually
+  - id: kit-macos-zip-archive
+    format: zip
+    builds:
+      - kit-macos
+    name_template: >-
+      {{ .ProjectName }}-
+      {{- tolower .Os }}-
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    files:
+      - LICENSE
+      - README.md
+  # tar.gz archives for Mac OS:
+  #   - will not be notarized
+  #   - will be installable via homebrew (i.e. "brew install kitops")
+  - id: kit-macos-targz-archive
+    format: tar.gz
+    builds:
+      - kit-macos
+    name_template: >-
+      {{ .ProjectName }}-
+      {{- tolower .Os }}-
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    files:
+      - LICENSE
+      - README.md
+
+git:
+  ignore_tags:
+    - "next"
+
+snapshot:
+  name_template: "{{ .Version }}"
